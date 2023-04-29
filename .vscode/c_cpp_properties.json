@@ -10,6 +10,11 @@
             "includePath": [
                 "/Users/christophblizenetz/Documents/Programming/C++/Fortuna-Project/Fortuna/include",
                 "/Users/christophblizenetz/Documents/Programming/C++/Fortuna-Project/Fortuna/src",
+                "/Users/christophblizenetz/Documents/Programming/C++/Fortuna-Project/Fortuna/.pio/libdeps/esp32dev/GxEPD2/src",
+                "/Users/christophblizenetz/Documents/Programming/C++/Fortuna-Project/Fortuna/.pio/libdeps/esp32dev/Adafruit GFX Library",
+                "/Users/christophblizenetz/Documents/Programming/C++/Fortuna-Project/Fortuna/.pio/libdeps/esp32dev/Adafruit BusIO",
+                "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
+                "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",
@@ -198,6 +203,7 @@
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/dio_qspi/include",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/cores/esp32",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/variants/esp32",
+                "/Users/christophblizenetz/Documents/Programming/C++/Fortuna-Project/Fortuna/.pio/libdeps/esp32dev/Unity/src",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/AsyncUDP/src",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
@@ -219,7 +225,6 @@
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/RainMaker/src",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SD/src",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SD_MMC/src",
-                "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SimpleBLE/src",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/Ticker/src",
@@ -229,7 +234,6 @@
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                 "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
-                "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                 ""
             ],
             "browse": {
@@ -237,6 +241,11 @@
                 "path": [
                     "/Users/christophblizenetz/Documents/Programming/C++/Fortuna-Project/Fortuna/include",
                     "/Users/christophblizenetz/Documents/Programming/C++/Fortuna-Project/Fortuna/src",
+                    "/Users/christophblizenetz/Documents/Programming/C++/Fortuna-Project/Fortuna/.pio/libdeps/esp32dev/GxEPD2/src",
+                    "/Users/christophblizenetz/Documents/Programming/C++/Fortuna-Project/Fortuna/.pio/libdeps/esp32dev/Adafruit GFX Library",
+                    "/Users/christophblizenetz/Documents/Programming/C++/Fortuna-Project/Fortuna/.pio/libdeps/esp32dev/Adafruit BusIO",
+                    "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
+                    "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",
@@ -425,6 +434,7 @@
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/dio_qspi/include",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/cores/esp32",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/variants/esp32",
+                    "/Users/christophblizenetz/Documents/Programming/C++/Fortuna-Project/Fortuna/.pio/libdeps/esp32dev/Unity/src",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/AsyncUDP/src",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
@@ -446,7 +456,6 @@
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/RainMaker/src",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SD/src",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SD_MMC/src",
-                    "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SimpleBLE/src",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/Ticker/src",
@@ -456,7 +465,6 @@
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                     "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
-                    "/Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                     ""
                 ]
             },
