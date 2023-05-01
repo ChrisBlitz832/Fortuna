@@ -59,7 +59,7 @@ DisplayModes displayMode = SETUP;
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 
-TimeManager timeManager1;
+TimeManager ldrTimeManager;
 TimeManager timeManager2;
 TimeManager buttonTimeManager;
 TimeManager messageLoopTimeManager;
@@ -75,7 +75,6 @@ int minutes = 0;
 bool displayIsActive = false;
 
 char clockTime[] = "10:09";
-int test;
 
 char dateTime[] = "04.10.2004";
 int16_t tbx, tby; uint16_t tbw, tbh;
@@ -94,6 +93,7 @@ bool onChange = false;
 float sumTemperature = 0;
 float sumHumandity = 0;
 float sumPPM = 0;
+int sumLDR = 0;
 
 int ldrValue = 0;
 
@@ -108,7 +108,7 @@ TimeManager validationDuration;
 
 TimeManager displayRefresh;
 
-uint16_t brightnessSlider = 0;
+uint16_t brightnessSlider = 20;    
 uint16_t currentBrightnessSlider = 0;
 uint16_t previousBrightnessSlider = 0;
 
@@ -120,6 +120,8 @@ float automaticBrightness = 0;
 
 int pirValue = 1;
 int pirCounter = 0;
+
+int ldrCounter = 0;
 
 VariableChange<bool> systemStatus(systemIsOn);
 VariableChange<uint16_t> brightness(brightnessSlider);
@@ -142,24 +144,34 @@ int yearCounter;
 
 enum SettingMode {START_TIME, HOUR_0, HOUR_1, MINUTE_0, MINUTE_1, DATE_SETUP, DAY, MONTH, YEAR, END};
 SettingMode settingMode = END;
-
+ 
 
 void pwmAgent() {
 
   float luminousValueCold = static_cast<float>(1-(luminousSlider/100.0));
   float luminousValueWarm = static_cast<float>(luminousSlider/100.0);
-  automaticBrightness = map(ldrValue, 0, 2500, 0, 100);
+  automaticBrightness = map(ldrValue, 0, 250, 100, 0);
+
+  automaticBrightness < 6 ? automaticBrightness = 5 : automaticBrightness;
 
   float brightnessValue;
 
-  if (automaticIsOn) {
+  if (automaticIsOn && pirValue == HIGH) {
     brightnessValue = automaticBrightness;
   }
-  else {
+  else if (automaticIsOn && pirValue == LOW) {
+    brightnessValue = automaticBrightness / 2;
+  }
+  else if (!automaticIsOn && pirValue == HIGH) {
     brightnessValue = brightnessSlider;
   }
+  else {
+    brightnessValue = brightnessSlider / 2;
+  }
 
-  Serial.printf("PWM");
+
+  // Serial.printf("PWM\n");
+  Serial.printf("LDR: %d\n", ldrValue);
 
   analogWrite(pwm1, (255.0/100.0)*brightnessValue*luminousValueCold); 
   analogWrite(pwm2, (255.0/100.0)*brightnessValue*luminousValueWarm); 
@@ -187,6 +199,18 @@ void drawProgressBar(int x, int y, float w, int h, int progress)
   display.fillRoundRect(x+5, y+5, progressWidth-10, h-10, 20, GxEPD_BLACK);
 }
 
+int roundUp(int numToRound, int multiple)
+{
+    if (multiple == 0)
+        return numToRound;
+
+    int remainder = numToRound % multiple;
+    if (remainder == 0)
+        return numToRound;
+
+    return numToRound + multiple - remainder;
+}
+
 void buttonAgent() {
   // Turn Lamp on and off (always avalible)
   if (btnPower.hasPressed() && settingMode == END) {
@@ -199,6 +223,7 @@ void buttonAgent() {
   else if (btnBrightness.isPressed() && btnLuminous.isPressed() && settingMode == END) {
     if (automaticIsOn) {
       automaticIsOn = false;
+      brightnessSlider = roundUp(automaticBrightness, 10);
       operationMode = BRIGHTNESS;
       displayMode = OPERATION;
     }
@@ -497,12 +522,6 @@ void environmentalData(int duration = 5000) {
     sumTemperature += dht20.getTemperature();
     sumHumandity += dht20.getHumidity()*100.0;
     sumPPM += CCS811.getCO2PPM();
-
-    if (automaticIsOn) {
-      ldrValue = analogRead(ldrPin);
-      pwmAgent();
-    }
-
     
     counter++;
 
@@ -526,18 +545,6 @@ void environmentalData(int duration = 5000) {
     }
     else {
       messageHandlerPosition = 0;
-    }
-
-    pirValue = digitalRead(pir);
-
-    if (pirValue < 1) {
-      int lowBrightnessSlider = round(static_cast<float>(brightnessSlider / 2)); 
-      int lowLuminousSlider = round(static_cast<float>(luminousSlider / 2)); 
-
-      analogWrite(pwm1, lowBrightnessSlider);
-      analogWrite(pwm2, lowLuminousSlider);
-
-      displayMode = LOWPOWER;
     }
 
     sumTemperature = 0;
@@ -1043,6 +1050,8 @@ void Task2code(void * parameter) {
       // Serial.printf("Mean LDR: %d\n", meanLDR);
       // Serial.printf("-------------\n");
 
+      Serial.printf("PIR: %d\n", digitalRead(pir));
+
       // Serial.printf("BASELINE: %d", CCS811.readBaseLine());
 
     //   // Serial.printf("Brightness: %d\n", brightnessSlider);
@@ -1060,6 +1069,29 @@ void Task2code(void * parameter) {
       buttonTimeManager.setPrevious();
     }
 
+    
+
+    if (ldrTimeManager.elapsed()) {
+      ldrCounter++;
+      sumLDR += analogRead(ldrPin);
+
+      if (ldrCounter >= 20) {
+        ldrValue = sumLDR / ldrCounter;
+        ldrCounter = 0;
+        sumLDR = 0;
+        
+        if (automaticIsOn) {
+          pwmAgent();
+        }
+
+      }
+
+      ldrTimeManager.setPrevious();
+    }
+    
+
+   
+
     btnPower.update();
     environmentalData();
 
@@ -1075,6 +1107,7 @@ void Task2code(void * parameter) {
   }
 }
 
+
 void setup()
 {
   Wire.end();
@@ -1083,7 +1116,7 @@ void setup()
   Serial.begin(9600);
 
   // TimeManager setup
-  timeManager1.setDuration(300);
+  ldrTimeManager.setDuration(200);
   timeManager2.setDuration(300);
   buttonTimeManager.setDuration(200);
   messageLoopTimeManager.setDuration(200);
