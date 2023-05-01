@@ -1,6 +1,4 @@
-.pio/build/esp32dev/src/main.cpp.o: src/main.cpp \
- .pio/libdeps/esp32dev/GxEPD2/src/GxEPD2_BW.h \
- .pio/libdeps/esp32dev/Adafruit\ GFX\ Library/Adafruit_GFX.h \
+.pio/build/esp32dev/src/main.cpp.o: src/main.cpp src/Button.h \
  /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/cores/esp32/Arduino.h \
  /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp_arduino_version.h \
  /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/freertos/FreeRTOS.h \
@@ -129,11 +127,14 @@
  /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/spi_flash/include/esp_spi_flash.h \
  /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/spi_flash/include/esp_spi_flash_counters.h \
  /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_hw_support/include/soc/esp32/spiram.h \
+ src/TimeManager.h src/Clock.h src/TimeManager.h src/DS3231.h \
+ /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src/Wire.h \
+ /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp32-hal.h \
+ src/VariableChange.h .pio/libdeps/esp32dev/GxEPD2/src/GxEPD2_BW.h \
+ .pio/libdeps/esp32dev/Adafruit\ GFX\ Library/Adafruit_GFX.h \
  /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/cores/esp32/Print.h \
  .pio/libdeps/esp32dev/Adafruit\ GFX\ Library/gfxfont.h \
  .pio/libdeps/esp32dev/Adafruit\ BusIO/Adafruit_I2CDevice.h \
- /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src/Wire.h \
- /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp32-hal.h \
  .pio/libdeps/esp32dev/Adafruit\ BusIO/Adafruit_SPIDevice.h \
  /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src/SPI.h \
  /Users/christophblizenetz/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp32-hal-spi.h \
@@ -184,32 +185,10 @@
  .pio/libdeps/esp32dev/GxEPD2/src/it8951/GxEPD2_it60_1448x1072.h \
  .pio/libdeps/esp32dev/GxEPD2/src/it8951/GxEPD2_it78_1872x1404.h \
  .pio/libdeps/esp32dev/GxEPD2/src/it8951/GxEPD2_it103_1872x1404.h \
- .pio/libdeps/esp32dev/GxEPD2/src/GxEPD2_3C.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_154c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/../GxEPD2_EPD.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_154_Z90c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_213c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_213_Z19c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_213_Z98c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_290c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_290_Z13c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_290_C90c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_266c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_270c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_420c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_420c_Z21.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_583c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_583c_Z83.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_565c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_750c.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_750c_Z08.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_750c_Z90.h \
- .pio/libdeps/esp32dev/GxEPD2/src/epd3c/GxEPD2_1248c.h \
- .pio/libdeps/esp32dev/Adafruit\ GFX\ Library/Fonts/FreeSansBold42pt7b.h \
- .pio/libdeps/esp32dev/Adafruit\ GFX\ Library/Fonts/FreeSansBold18pt7b.h \
- .pio/libdeps/esp32dev/Adafruit\ GFX\ Library/Fonts/FreeSansBold9pt7b.h \
+ src/GxEPD2_display_selection.h src/GxEPD2_display_selection_added.h \
  .pio/libdeps/esp32dev/Adafruit\ GFX\ Library/Fonts/FreeSans18pt7b.h \
+ .pio/libdeps/esp32dev/Adafruit\ GFX\ Library/Fonts/FreeSansBold9pt7b.h \
+ .pio/libdeps/esp32dev/Adafruit\ GFX\ Library/Fonts/FreeSansBold18pt7b.h \
+ .pio/libdeps/esp32dev/Adafruit\ GFX\ Library/Fonts/FreeSansBold42pt7b.h \
  .pio/libdeps/esp32dev/Adafruit\ GFX\ Library/Fonts/customSymbols.h \
- src/DFRobot_CCS811.h src/DFRobot_DHT20.h src/GxEPD2_display_selection.h \
- src/GxEPD2_display_selection_added.h src/Button.h src/TimeManager.h \
- src/Clock.h src/TimeManager.h src/DS3231.h src/VariableChange.h
+ src/DFRobot_CCS811.h src/DFRobot_DHT20.h

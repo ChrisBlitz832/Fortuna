@@ -1,83 +1,79 @@
-// GxEPD2_HelloWorld.ino by Jean-Marc Zingg
+/*
+  program: main.cpp
+  usage: main program for the project Fortuna
+  author: Christoph Blizenetz
+  date: 01.05.2023 
+*/
 
-// see GxEPD2_wiring_examples.h for wiring suggestions and examples
-// if you use a different wiring, you need to adapt the constructor parameters!
-
-// uncomment next line to use class GFX of library GFX_Root instead of Adafruit_GFX
-//#include <GFX.h>
-
-#include <GxEPD2_BW.h>
-#include <GxEPD2_3C.h>
 #include <iostream>
 #include <string>
-#include <Fonts/FreeSansBold42pt7b.h>
-#include <Fonts/FreeSansBold18pt7b.h>
-#include <Fonts/FreeSansBold9pt7b.h>
+
+// include custom build libraries for this program
+#include "Button.h"
+#include "TimeManager.h"
+#include "Clock.h"
+#include "VariableChange.h"
+
+// include libraries for the SPI e-paper panels (from Jean-Marc Zingg)
+#include <GxEPD2_BW.h> 
+#include "GxEPD2_display_selection.h"
+#include "GxEPD2_display_selection_added.h"
+
+// include required fonts for the display
 #include <Fonts/FreeSans18pt7b.h>
+#include <Fonts/FreeSansBold9pt7b.h>
+#include <Fonts/FreeSansBold18pt7b.h>
+#include <Fonts/FreeSansBold42pt7b.h>
 #include <Fonts/customSymbols.h>
 
-#include "DFRobot_CCS811.h" // air quality sensor
-#include "DFRobot_DHT20.h" // temperature and humidity sensor
+#include "DFRobot_CCS811.h" // CCS811-Sensor: air quality sensor
+#include "DFRobot_DHT20.h" // DHT20-Sensor: temperature and humidity sensor
 
+// pins for the I2C
 #define SDA_PIN 21
 #define SCL_PIN 22
 
+// pins for the capacitive buttons
 #define BUTTON_POWER 12
 #define BUTTON_BRIGHTNESS 27
 #define BUTTON_LUMINOUS 25
 #define BUTTON_HIGHER 26
 #define BUTTON_LOWER 14
 
-#define ldrPin 2
+#define ldr 2 // light dependent resistor
+#define pir 35 // motion sensor
 
-#define pwm1 15
-#define pwm2 0
+#define pwm0 15 // MOSFET for the cold white SMDs
+#define pwm1 0 // MOSFET for the warm white SMDs
 
-#define pir 35
-
-// DHT20 - Sensor:
-DFRobot_DHT20 dht20;
-
-// CCS811 - Sensor:
+DFRobot_DHT20 DHT20;
 DFRobot_CCS811 CCS811;
-
-// or select the display constructor line in one of the following files (old style):
-#include "GxEPD2_display_selection.h"
-#include "GxEPD2_display_selection_added.h"
-
-#include "Button.h"
-#include "TimeManager.h"
-#include "Clock.h"
-#include "VariableChange.h"
 
 enum OperationMode {BRIGHTNESS, LUMINOUS, SETTING};
 OperationMode operationMode = BRIGHTNESS;
 
-enum DisplayModes {SETUP, OPERATION, LOWPOWER, AUTOMATIC, OFF};
+enum DisplayModes {SETUP, OPERATION, LOWPOWER, AUTOMATIC, OFF_PREP, OFF};
 DisplayModes displayMode = SETUP;
+
+enum SettingMode {START_TIME, HOUR_0, HOUR_1, MINUTE_0, MINUTE_1, DATE_SETUP, DAY, MONTH, YEAR, END};
+SettingMode settingMode = END;
 
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 
-TimeManager ldrTimeManager;
-TimeManager timeManager2;
+TimeManager ldrPirTimeManager;
 TimeManager buttonTimeManager;
 TimeManager messageLoopTimeManager;
+TimeManager measureDuration;
+TimeManager validationDuration;
+TimeManager displayRefresh;
 
-Clock clockManager;
+Clock clockManager; // handling clock-time and date-time with backed RTC-Module
 
 bool systemIsOn = true;
 bool automaticIsOn = false;
 
-int hours = 0;
-int minutes = 0;
-
-bool displayIsActive = false;
-
-char clockTime[] = "10:09";
-
-char dateTime[] = "04.10.2004";
-int16_t tbx, tby; uint16_t tbw, tbh;
+int16_t tbx, tby; uint16_t tbw, tbh; // helpers for centering clock-time and date-time on display
 
 Button btnPower(BUTTON_POWER, false);
 Button btnBrightness(BUTTON_BRIGHTNESS, false);
@@ -85,43 +81,23 @@ Button btnLuminous(BUTTON_LUMINOUS, false);
 Button btnHigher(BUTTON_HIGHER, false);
 Button btnLower(BUTTON_LOWER, false);
 
-// Display variables
-
-// Temperature
-bool onChange = false;
-
 float sumTemperature = 0;
 float sumHumandity = 0;
 float sumPPM = 0;
-int sumLDR = 0;
+u_int16_t sumLDR = 0;
 
-int ldrValue = 0;
-
-int meanTemperature = 0;
-int meanHumandity = 0;
-int meanPPM = 0;
-bool environmentalDataKey = true;
-int counter = 0;
-
-TimeManager measureDuration;
-TimeManager validationDuration;
-
-TimeManager displayRefresh;
+u_int16_t meanTemperature = 0;
+u_int16_t meanHumandity = 0;
+u_int16_t meanPPM = 0;
+u_int16_t meanLDR = 0;
 
 uint16_t brightnessSlider = 20;    
-uint16_t currentBrightnessSlider = 0;
-uint16_t previousBrightnessSlider = 0;
-
 uint16_t luminousSlider = 30;
-uint16_t currentLuminousSlider = 0;
-uint16_t previousLuminousSlider = 0;
 
 float automaticBrightness = 0;
-
-int pirValue = 1;
-int pirCounter = 0;
-
-int ldrCounter = 0;
+float luminousValueCold = 0;
+float luminousValueWarm = 0;
+float brightnessValue = 0;
 
 VariableChange<bool> systemStatus(systemIsOn);
 VariableChange<uint16_t> brightness(brightnessSlider);
@@ -140,21 +116,25 @@ int dayCounter;
 int monthCounter;
 int yearCounter;
 
+u_int16_t environmentalDataMeanCounter = 0;
+
+uint16_t pirValue = 1;
+uint16_t ldrCounter = 0;
+
+std :: string averageAirQualityM = "Luftqualität in PPM: " + std::to_string(meanPPM);
+std :: string badAirQualityM = "Lüften wird empfohlen: " + std::to_string(meanPPM);
+int messageHandlerPosition = 0;
+
 // https://rop.nl/truetype2gfx/
 
-enum SettingMode {START_TIME, HOUR_0, HOUR_1, MINUTE_0, MINUTE_1, DATE_SETUP, DAY, MONTH, YEAR, END};
-SettingMode settingMode = END;
- 
-
+// handling pwm control for SMDs
 void pwmAgent() {
+  luminousValueCold = static_cast<float>(1-(luminousSlider/100.0));
+  luminousValueWarm = static_cast<float>(luminousSlider/100.0);
 
-  float luminousValueCold = static_cast<float>(1-(luminousSlider/100.0));
-  float luminousValueWarm = static_cast<float>(luminousSlider/100.0);
-  automaticBrightness = map(ldrValue, 0, 250, 100, 0);
+  automaticBrightness = map(meanLDR, 0, 250, 100, 0);
 
   automaticBrightness < 6 ? automaticBrightness = 5 : automaticBrightness;
-
-  float brightnessValue;
 
   if (automaticIsOn && pirValue == HIGH) {
     brightnessValue = automaticBrightness;
@@ -169,14 +149,11 @@ void pwmAgent() {
     brightnessValue = brightnessSlider / 2;
   }
 
-
-  // Serial.printf("PWM\n");
-  Serial.printf("LDR: %d\n", ldrValue);
-
-  analogWrite(pwm1, (255.0/100.0)*brightnessValue*luminousValueCold); 
-  analogWrite(pwm2, (255.0/100.0)*brightnessValue*luminousValueWarm); 
+  analogWrite(pwm0, (255.0/100.0)*brightnessValue*luminousValueCold); 
+  analogWrite(pwm1, (255.0/100.0)*brightnessValue*luminousValueWarm); 
 }
 
+// setting basic parameters for the display on first run
 void frameSetup() 
 {
   display.init();
@@ -186,11 +163,12 @@ void frameSetup()
   do
   {
     display.fillScreen(GxEPD_WHITE);
-  } while (display.nextPage());
+  } 
+  while (display.nextPage());
 }
 
-void drawProgressBar(int x, int y, float w, int h, int progress)
-{
+// drawing progress bar for brightness and luminous
+void drawProgressBar(int x, int y, float w, int h, int progress) {
   int progressWidth = progress * (w / 100);
 
   display.fillRoundRect(x, y, w, h, 20, GxEPD_BLACK);
@@ -199,8 +177,8 @@ void drawProgressBar(int x, int y, float w, int h, int progress)
   display.fillRoundRect(x+5, y+5, progressWidth-10, h-10, 20, GxEPD_BLACK);
 }
 
-int roundUp(int numToRound, int multiple)
-{
+// helper function to round automaticBrightness to certain base
+int roundUp(int numToRound, int multiple) {
     if (multiple == 0)
         return numToRound;
 
@@ -211,8 +189,9 @@ int roundUp(int numToRound, int multiple)
     return numToRound + multiple - remainder;
 }
 
+// handling buttons and their actions
 void buttonAgent() {
-  // Turn Lamp on and off (always avalible)
+  // turn display on and off (always avalible)
   if (btnPower.hasPressed() && settingMode == END) {
     systemIsOn = !systemIsOn;
   }
@@ -220,6 +199,7 @@ void buttonAgent() {
   else if (btnPower.isPressed() && btnLuminous.isPressed() && settingMode == END) {
     settingMode = START_TIME;
   }
+  // activate/deactivate automatic-mode
   else if (btnBrightness.isPressed() && btnLuminous.isPressed() && settingMode == END) {
     if (automaticIsOn) {
       automaticIsOn = false;
@@ -235,12 +215,15 @@ void buttonAgent() {
 
     pwmAgent();
   }
+  // change operation-mode to brightness
   else if(btnBrightness.hasPressed() && settingMode == END && !automaticIsOn) {
     operationMode = BRIGHTNESS;
   } 
+  // change operation-mode to luminous
   else if(btnLuminous.hasPressed() && settingMode == END) {
     operationMode = LUMINOUS;
   } 
+  // set variable parameters (depending on operationMode) higher
   else if(btnHigher.hasPressed() && settingMode == END) {
     switch (operationMode)
     {
@@ -255,7 +238,8 @@ void buttonAgent() {
     default:
       break;
     }
-  } 
+  }
+   // set variable parameters (depending on operationMode) lower
   else if(btnLower.hasPressed() && settingMode == END) {
     switch (operationMode)
     {
@@ -271,19 +255,13 @@ void buttonAgent() {
       break;
     }
   }
-  
 }
 
-void stepBar(int x, int y, int w, int h, int progress) 
+// drawing step bar for air-quality (ppm)
+void drawStepBar(int x, int y, int w, int h, int progress) 
 {
-  int sectionWidth = w / 5 ;
+  uint16_t sectionWidth = w / 5 ;
   
-  // display.fillRect(x, y, w, h, GxEPD_BLACK);
-  // display.fillRect(x+3, y+3, w-6, h-6, GxEPD_WHITE);
-
-  // display.fillRect(x+sectionWidth/2, y, w-sectionWidth, 3, GxEPD_BLACK);
-  // display.fillRect(x+sectionWidth/2, y+h-3, w-sectionWidth, 3, GxEPD_BLACK);
-
   for (int i=0; i<5; i++) {
     display.fillRoundRect(x+((sectionWidth)*i), y, sectionWidth, h, 20, GxEPD_BLACK);
     display.fillRoundRect(x+3+((sectionWidth)*i), y+3, sectionWidth-6, h-6, 20, GxEPD_WHITE);
@@ -295,9 +273,8 @@ void stepBar(int x, int y, int w, int h, int progress)
   }
 }
 
+// controlling progress of step bar for air-quality (range of ppm: 400-2500)
 int calcPPWBar(int ppm, int min=400, int max=2500) {
-  // Range between 400-2500
-
   int oneElement = (max-min)/5;
 
   if (ppm < oneElement) {
@@ -317,73 +294,27 @@ int calcPPWBar(int ppm, int min=400, int max=2500) {
   }
 }
 
-void displayLayout() {
-
-  display.fillScreen(GxEPD_WHITE);
-  display.fillRect(0, 120, 300, 5, GxEPD_BLACK);  // Mitte 1
-  display.fillRect(0, 0, 300, 5, GxEPD_BLACK);    // Oben
-  display.fillRect(0, 0, 5, 400, GxEPD_BLACK);  // Links
-  display.fillRect(295, 0, 5, 400, GxEPD_BLACK);  // Rechts
-  display.fillRect(0, 395, 300, 5, GxEPD_BLACK);  // Unten       
-
-  display.fillRect(0, 245, 300, 5, GxEPD_BLACK);  // Mitte 2
-
-  //Clocktime
-  display.setFont(&FreeSansBold42pt7b);
-  display.getTextBounds(clockManager.convertTimeToString().c_str(), 0, 0, &tbx, &tby, &tbw, &tbh);
-  display.setCursor(((display.width() - tbw) / 2) - tbx, 70);
-  display.print(clockManager.convertTimeToString().c_str());
-
-  display.setFont(&FreeSans18pt7b);
-  display.getTextBounds(clockManager.convertDateToString().c_str(), 0, 0, &tbx, &tby, &tbw, &tbh);
-  display.setCursor(((display.width() - tbw) / 2) - tbx, 105);
-  display.print(clockManager.convertDateToString().c_str());
-
-  display.setFont(&customSymbols);
-  display.setCursor(5, 180);
-  display.print("0");
-
-  drawProgressBar(70, 140, 215, operationMode == BRIGHTNESS ? 30 : 20, brightnessSlider);
-
-  display.setCursor(5, 240);
-  display.print("0");
-  display.setCursor(5, 240);
-  display.print("1");
-
-  drawProgressBar(70, 200, 215, operationMode == LUMINOUS ? 30 : 20, luminousSlider);
-
-  display.setCursor(5, 305);
-  display.print("2");
-
-  display.setFont(&FreeSansBold18pt7b);
-  display.setCursor(50, 290);
-  display.print(meanTemperature);
-  display.print("#");
-
-  display.setFont(&customSymbols);
-  display.setCursor(160, 305);
-  display.print("3");
-
-  display.setFont(&FreeSansBold18pt7b);
-  display.setCursor(220, 290);
-  display.print(meanHumandity);
-  display.print("%");
-
-  display.setFont(&customSymbols);
-  display.setCursor(5, 365);
-  display.print("4");
-
-  stepBar(60, 322, 225, 30, calcPPWBar(meanPPM));
+// handling messages about air-quality
+void messageHandler() {
+  if (messageHandlerPosition == 0) {
+    averageAirQualityM = "Luftqualität in PPM: " + std::to_string(meanPPM);
+    display.print(averageAirQualityM.c_str());
+  }
+  else if (messageHandlerPosition == 1) {
+    badAirQualityM = "Lüften wird empfohlen: " + std::to_string(meanPPM);
+    display.print(badAirQualityM.c_str());
+  }
 }
 
+// visualize static elements (none changing) on display
 void displayStaticElements() {
   display.setPartialWindow(0, 0, 300, 400);
-  display.fillRect(0, 120, 300, 5, GxEPD_BLACK);  // Mitte 1
-  display.fillRect(0, 0, 300, 5, GxEPD_BLACK);    // Oben
-  display.fillRect(0, 0, 5, 400, GxEPD_BLACK);  // Links
-  display.fillRect(295, 0, 5, 400, GxEPD_BLACK);  // Rechts
-  display.fillRect(0, 395, 300, 5, GxEPD_BLACK);  // Unten       
-  display.fillRect(0, 245, 300, 5, GxEPD_BLACK);  // Mitte 2
+  display.fillRect(0, 120, 300, 5, GxEPD_BLACK);  // center 1
+  display.fillRect(0, 0, 300, 5, GxEPD_BLACK);    // top
+  display.fillRect(0, 0, 5, 400, GxEPD_BLACK);  // left
+  display.fillRect(295, 0, 5, 400, GxEPD_BLACK);  // right
+  display.fillRect(0, 395, 300, 5, GxEPD_BLACK);  // bottom       
+  display.fillRect(0, 245, 300, 5, GxEPD_BLACK);  // center 2
   
   display.setFont(&customSymbols);
   display.setCursor(5, 180);
@@ -404,6 +335,7 @@ void displayStaticElements() {
   display.print("4");
 }
 
+// partial refresh of clock time
 void displayPartialRefreshClockTime() {
   display.fillRect(10, 75, 280, -65, GxEPD_WHITE);
 
@@ -413,6 +345,7 @@ void displayPartialRefreshClockTime() {
   display.print(clockManager.convertTimeToString().c_str());
 }
 
+// partial refresh of clock date
 void displayPartialRefreshClockDate() {
   display.fillRect(10, 110, 280, -30, GxEPD_WHITE);
 
@@ -422,11 +355,13 @@ void displayPartialRefreshClockDate() {
   display.print(clockManager.convertDateToString().c_str());
 }
 
+// partial refresh of brightness process bar
 void displayPartialRefreshBrightnessProcessBar() {
   display.fillRect(70, 140, 215, 30, GxEPD_WHITE);
   drawProgressBar(70, 140, 215, operationMode == BRIGHTNESS ? 30 : 20, brightnessSlider);
 }
 
+// partial refresh of bighntess automatic process bar
 void displayPartialRefreshBrightnessAutomaticProcessBar() {
   display.fillRect(70, 140, 215, 30, GxEPD_WHITE);
   drawProgressBar(70, 140, 215-40, 30, automaticBrightness);
@@ -436,13 +371,15 @@ void displayPartialRefreshBrightnessAutomaticProcessBar() {
   display.print('A');
 }
 
+// partial refresh of luminous process bar
 void displayPartialRefreshLuminousProcessBar() {
   display.fillRect(70, 200, 215, 30, GxEPD_WHITE);
   drawProgressBar(70, 200, 215, operationMode == LUMINOUS ? 30 : 20, luminousSlider);
 }
 
+// partial refresh of temperature
 void displayPartialRefreshTemperature() {
-  display.fillRect(50, 290, 100, -30, GxEPD_WHITE);
+  display.fillRect(50, 295, 100, -35, GxEPD_WHITE);
 
   display.setFont(&FreeSansBold18pt7b);
   display.setCursor(50, 290);
@@ -450,6 +387,7 @@ void displayPartialRefreshTemperature() {
   display.print("#");
 }
 
+// partial refresh of humandity
 void displayPartialRefreshHumandity() {
   display.fillRect(220, 290, 70, -30, GxEPD_WHITE);
 
@@ -459,28 +397,14 @@ void displayPartialRefreshHumandity() {
   display.print("%");
 }
 
-void displayPartialRefreshPPMStepBar() {
+// partial refresh of ppm step bar
+void displayPartialRefreshPPMdrawStepBar() {
   display.setFont(&customSymbols);
   display.setCursor(5, 365);
-  stepBar(60, 322, 225, 30, calcPPWBar(meanPPM));
+  drawStepBar(60, 322, 225, 30, calcPPWBar(meanPPM));
 }
 
-std :: string averageAirQualityM = "Luftqualität in PPM: " + std::to_string(meanPPM);
-std :: string badAirQualityM = "Lüften wird empfohlen: " + std::to_string(meanPPM);
-
-int messageHandlerPosition = 0;
-
-void messageHandler() {
-  if (messageHandlerPosition == 0) {
-    averageAirQualityM = "Luftqualität in PPM: " + std::to_string(meanPPM);
-    display.print(averageAirQualityM.c_str());
-  }
-  else if (messageHandlerPosition == 1) {
-    badAirQualityM = "Lüften wird empfohlen: " + std::to_string(meanPPM);
-    display.print(badAirQualityM.c_str());
-  }
-}
-
+// partial refrsh of message handler
 void displayPartialRefreshMessageHandler() {
   display.fillRect(10, 385, 280, -25, GxEPD_WHITE);
 
@@ -488,9 +412,9 @@ void displayPartialRefreshMessageHandler() {
   display.setCursor(10, 380);
 
   messageHandler();
-
 }
 
+// handler for all partrial refresh functions
 void displayRefreshHandler(void (*func)()) {
   int count = 0;
 
@@ -501,43 +425,29 @@ void displayRefreshHandler(void (*func)()) {
   while(display.nextPage());
 }
 
-void environmentalData(int duration = 5000) {
-  if (environmentalDataKey) {
-    measureDuration.setDuration(duration);
-    validationDuration.setDuration(60000);
-
-    meanTemperature = dht20.getTemperature();
-    meanHumandity = dht20.getHumidity()*100.0;
-    meanPPM = CCS811.getCO2PPM();
-
-    displayRefreshHandler(&displayPartialRefreshTemperature);
-    displayRefreshHandler(&displayPartialRefreshHumandity);
-    displayRefreshHandler(&displayPartialRefreshPPMStepBar);
-
-    environmentalDataKey = false;
-  }
-
+// collecting and validation of environmental data
+void environmentalData() {
   // every 5sek (5000ms)
   if (measureDuration.elapsed()) {
-    sumTemperature += dht20.getTemperature();
-    sumHumandity += dht20.getHumidity()*100.0;
+    sumTemperature += DHT20.getTemperature();
+    sumHumandity += DHT20.getHumidity()*100.0;
     sumPPM += CCS811.getCO2PPM();
     
-    counter++;
+    environmentalDataMeanCounter++;
 
     measureDuration.setPrevious();
   }
 
   // every 1min (60000ms)
   if (validationDuration.elapsed()) {
-    meanTemperature = round(sumTemperature / counter);
-    meanHumandity = round(sumHumandity / counter);
-    meanPPM = round(sumPPM / counter);
+    meanTemperature = round(sumTemperature / environmentalDataMeanCounter);
+    meanHumandity = round(sumHumandity / environmentalDataMeanCounter);
+    meanPPM = round(sumPPM / environmentalDataMeanCounter);
 
     if (settingMode == END && displayMode == OPERATION) {
       displayRefreshHandler(&displayPartialRefreshTemperature);
       displayRefreshHandler(&displayPartialRefreshHumandity);
-      displayRefreshHandler(&displayPartialRefreshPPMStepBar);
+      displayRefreshHandler(&displayPartialRefreshPPMdrawStepBar);
     }
 
     if (meanPPM > 1500) {
@@ -550,9 +460,8 @@ void environmentalData(int duration = 5000) {
     sumTemperature = 0;
     sumHumandity = 0;
     sumPPM = 0;
-    counter = 0;
+    environmentalDataMeanCounter = 0;
     validationDuration.setPrevious();
-
   }
 }
 
@@ -560,10 +469,10 @@ template<typename T>
 void settingModePlusMinus(T value, int xOffset, int yOffset, int rectWidth, int rectHeight, int yCursor, GFXfont font) {
   do 
   { 
-    display.fillRect((((display.width() - tbw) / 2) - tbx) + xOffset, yOffset, rectWidth, rectHeight, GxEPD_WHITE); // yOffset = 75 / 45 / -65
+    display.fillRect((((display.width() - tbw) / 2) - tbx) + xOffset, yOffset, rectWidth, rectHeight, GxEPD_WHITE);
 
-    display.setFont(&font); // FreeSansBold42pt7b
-    display.setCursor((((display.width() - tbw) / 2) - tbx) + xOffset, yCursor); // yCursor = 70
+    display.setFont(&font);
+    display.setCursor((((display.width() - tbw) / 2) - tbx) + xOffset, yCursor);
     display.print(value);
   } 
   while (display.nextPage());
@@ -903,7 +812,7 @@ void displayAgent() {
       displayPartialRefreshLuminousProcessBar();
       displayPartialRefreshTemperature();
       displayPartialRefreshHumandity();
-      displayPartialRefreshPPMStepBar();
+      displayPartialRefreshPPMdrawStepBar();
       displayPartialRefreshMessageHandler();
       displayPartialRefreshClockDate();
     }
@@ -915,8 +824,6 @@ void displayAgent() {
     else {
       displayMode = OPERATION;
     }
-
-    Serial.printf("SETUP\n");
 
     break;
 
@@ -949,7 +856,6 @@ void displayAgent() {
         }
         
         messageLoopTimeManager.setPrevious();
-
       }
     }
 
@@ -963,7 +869,7 @@ void displayAgent() {
           displayPartialRefreshLuminousProcessBar();
           displayPartialRefreshTemperature();
           displayPartialRefreshHumandity();
-          displayPartialRefreshPPMStepBar();
+          displayPartialRefreshPPMdrawStepBar();
           displayPartialRefreshMessageHandler();
         }
         while(display.nextPage());
@@ -972,8 +878,8 @@ void displayAgent() {
       }
 
     if (!systemIsOn) {
+      analogWrite(pwm0, 0);
       analogWrite(pwm1, 0);
-      analogWrite(pwm2, 0);
       displayRefresh.setPrevious();
      
       display.fillScreen(GxEPD_WHITE);
@@ -1013,7 +919,6 @@ void displayAgent() {
 
     if (displayRefresh.elapsed()) {
       display.powerOff();
-      Serial.printf("Power off");
     }
 
     break;
@@ -1024,77 +929,43 @@ void displayAgent() {
 }
 
 void Task1code(void * parameter) {
-
-  
-
   for(;;) {
+    if (settingMode == END) {
       displayAgent(); 
-
-      if (timeManager2.elapsed()) {
-        settingModeHandler();
-      }
+    }
+    else {
+      settingModeHandler();
+    }
   }
 }
 
 void Task2code(void * parameter) {
   for(;;) {
-      if (timeManager2.elapsed()) {
-      // Serial.printf("System status: %d\n", systemIsOn);
-      // Serial.printf("Temp: %f\n", dht20.getTemperature());
-      // Serial.printf("Hum: %f\n", dht20.getHumidity()*100.0);
-      // Serial.printf("PPM: %d\n", CCS811.getCO2PPM());
-
-      // Serial.printf("Mean Temp: %d\n", meanTemperature);
-      // Serial.printf("Mean Hum: %d\n", meanHumandity);
-      // Serial.printf("Mean PPM: %d\n", meanPPM);
-      // Serial.printf("Mean LDR: %d\n", meanLDR);
-      // Serial.printf("-------------\n");
-
-      Serial.printf("PIR: %d\n", digitalRead(pir));
-
-      // Serial.printf("BASELINE: %d", CCS811.readBaseLine());
-
-    //   // Serial.printf("Brightness: %d\n", brightnessSlider);
-    //   // Serial.printf("Luminous: %d\n", luminousSlider);
-    //   // Serial.printf("-------------\n");
-
-    //   // clockManager.getDateTime();
-    // clockManager.printTime();
-        timeManager2.setPrevious();
-     }
-
    if (buttonTimeManager.elapsed()) {
       buttonAgent();
 
       buttonTimeManager.setPrevious();
     }
 
-    
-
-    if (ldrTimeManager.elapsed()) {
+    if (ldrPirTimeManager.elapsed() && systemIsOn) {
       ldrCounter++;
-      sumLDR += analogRead(ldrPin);
+      sumLDR += analogRead(ldr);
 
       if (ldrCounter >= 20) {
-        ldrValue = sumLDR / ldrCounter;
+        meanLDR = sumLDR / ldrCounter;
         ldrCounter = 0;
         sumLDR = 0;
         
         if (automaticIsOn) {
           pwmAgent();
         }
-
       }
 
-      ldrTimeManager.setPrevious();
+      pirValue = digitalRead(pir);
+
+      ldrPirTimeManager.setPrevious();
     }
     
-
-   
-
-    btnPower.update();
-    environmentalData();
-
     if (systemIsOn) {
       btnBrightness.update();
       btnLuminous.update();
@@ -1102,8 +973,11 @@ void Task2code(void * parameter) {
       btnLower.update();
 
       clockManager.update();
-      
+
+      environmentalData();
     }
+
+    btnPower.update();
   }
 }
 
@@ -1116,12 +990,18 @@ void setup()
   Serial.begin(9600);
 
   // TimeManager setup
-  ldrTimeManager.setDuration(200);
-  timeManager2.setDuration(300);
+  ldrPirTimeManager.setDuration(200);
   buttonTimeManager.setDuration(200);
   messageLoopTimeManager.setDuration(200);
 
   displayRefresh.setDuration(30000);
+
+  measureDuration.setDuration(5000);
+  validationDuration.setDuration(60000);
+
+  meanTemperature = DHT20.getTemperature();
+  meanHumandity = DHT20.getHumidity()*100.0;
+  meanPPM = CCS811.getCO2PPM();
 
   // Button setup
   btnPower.begin();
@@ -1131,21 +1011,21 @@ void setup()
   btnLower.begin();
 
   // PinMode setup
-  pinMode(ldrPin, INPUT);
+  pinMode(ldr, INPUT);
+  pinMode(pwm0, OUTPUT);
   pinMode(pwm1, OUTPUT);
-  pinMode(pwm2, OUTPUT);
 
   pinMode(pir, INPUT);
 
+  analogWrite(pwm0, 0);
   analogWrite(pwm1, 0);
-  analogWrite(pwm2, 0);
 
   systemStatus.begin();
   brightness.begin();
   luminous.begin();
   mode.begin();
 
-  while(dht20.begin()) {
+  while(DHT20.begin()) {
     Serial.println("Initialize sensor failed");
     delay(2000);
   }
