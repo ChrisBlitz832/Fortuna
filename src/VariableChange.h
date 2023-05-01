@@ -1,3 +1,10 @@
+/*
+program: VariableChange.h
+usage: observing the change of a variable
+author: Christoph Blizenetz
+date: 25.02.2023
+*/
+
 #include <Arduino.h>
 
 #ifndef VARIABLECHANGE_H
@@ -27,7 +34,6 @@ public:
 
     T getCurrentValue() { return currentValue; }
     T getPreviousValue() { return previousValue; }
-
 };
 
 #endif

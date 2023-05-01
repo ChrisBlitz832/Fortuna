@@ -1,8 +1,8 @@
 /*
-Programm: TimeManager.cpp
-Zweck: Handling von Zeit
-Autor: Christoph Blizenetz
-Datum: 26.03.2022 
+program: TimeManager.cpp
+usage: handling of time with millis()
+author: Christoph Blizenetz
+date: 26.03.2022
 */
 
 #include <Arduino.h>

@@ -1,3 +1,10 @@
+/*
+program: Clock.cpp
+usage: handling of clock-time and clock-date with RTC-module
+author: Christoph Blizenetz
+date: 15.03.2023
+*/
+
 #include "Clock.h"
 
 #define HOUR_CHAR 0
@@ -39,14 +46,11 @@
                 ((__DATE__)[YEAR_CHAR + 3] - '0') * 1      \
               )
 
-
 void Clock :: begin() {
     this->timeManger.setDuration(60000);
     Wire.begin();
     myDS.setClockMode(false);
 }
-
-
 
 void Clock :: setDateTime(byte _year, byte _month, byte _date, byte _hour, byte _minute, byte _second) {
     myDS.setYear(_year);
@@ -70,32 +74,6 @@ void Clock :: update() {
     getDateTime();
 }
 
-// void Clock :: getDigits(int n, int arr[]) {
-//     int i = 0;
-//     if(n >= 10) {
-//         i++;
-//         getDigits(n / 10, arr);
-//     }
-
-//     arr[i] = n % 10;  
-// }
-
-
-// void Clock :: getDigits(int n, int arr[]) {
-//     int i = 0;
-//     // if(n >= 10) {
-//     //     i++;
-//     //     getDigits(n / 10, arr);
-//     // }
-
-//     // arr[i] = n % 10;  
-
-//     while (n) {
-//         arr[i++] = n%10;
-//         n /= 10;
-//     }
-// }
-
 void Clock :: getDigits(int n, int arr[]) {
    int rest = 0;
    int buff = n;
@@ -108,8 +86,6 @@ void Clock :: getDigits(int n, int arr[]) {
       buff = (buff-rest)/10;
    }
 }
-
-
 
 std::string Clock :: convertTimeToString() {
     getDigits(this->hour, this->hourDigit);
@@ -172,8 +148,6 @@ void Clock :: printTestTime() {
         Serial.printf("%d", this->hourDigit[i]);
     }
 
-    
-    //Serial.printf("%d", this->hour);
     Serial.printf("\n");
 }
 

@@ -1,8 +1,8 @@
 /*
-Programm: Button.h
-Zweck: Handling der Buttons inkl. longClick
-Autor: Christoph Blizenetz
-Datum: 06.05.2022 
+program: Button.h
+usage: handling of buttons
+author: Christoph Blizenetz
+date: 06.05.2022
 */
 
 #ifndef _BUTTON_H_

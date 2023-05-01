@@ -55,7 +55,7 @@ OperationMode operationMode = BRIGHTNESS;
 enum DisplayModes {SETUP, OPERATION, LOWPOWER, AUTOMATIC, OFF_PREP, OFF};
 DisplayModes displayMode = SETUP;
 
-enum SettingMode {START_TIME, HOUR_0, HOUR_1, MINUTE_0, MINUTE_1, DATE_SETUP, DAY, MONTH, YEAR, END};
+enum SettingMode {TIME_SETUP, HOUR_0, HOUR_1, MINUTE_0, MINUTE_1, DATE_SETUP, DAY, MONTH, YEAR, END};
 SettingMode settingMode = END;
 
 TaskHandle_t Task1;
@@ -197,7 +197,7 @@ void buttonAgent() {
   }
   // activate Clock-Setting mode
   else if (btnPower.isPressed() && btnLuminous.isPressed() && settingMode == END) {
-    settingMode = START_TIME;
+    settingMode = TIME_SETUP;
   }
   // activate/deactivate automatic-mode
   else if (btnBrightness.isPressed() && btnLuminous.isPressed() && settingMode == END) {
@@ -465,6 +465,7 @@ void environmentalData() {
   }
 }
 
+// helper function for setting-mode 
 template<typename T>
 void settingModePlusMinus(T value, int xOffset, int yOffset, int rectWidth, int rectHeight, int yCursor, GFXfont font) {
   do 
@@ -478,12 +479,13 @@ void settingModePlusMinus(T value, int xOffset, int yOffset, int rectWidth, int 
   while (display.nextPage());
 }
 
+// helper function for setting-mode
 template<typename T>
 void settingModeNextDigit(T value, int whiteRectOffset, int blackRectOffset, int yRect, int rectWidth, int rectHeight, int yCursor, GFXfont font) {
   do 
   {
-    display.fillRect((((display.width() - tbw) / 2) - tbx) + whiteRectOffset, yRect, rectWidth + 5, rectHeight, GxEPD_WHITE); // rectHeight = -4
-    display.fillRect((((display.width() - tbw) / 2) - tbx) + blackRectOffset, yRect, rectWidth, rectHeight, GxEPD_BLACK); // yRect = 80 rectWidth = 40
+    display.fillRect((((display.width() - tbw) / 2) - tbx) + whiteRectOffset, yRect, rectWidth + 5, rectHeight, GxEPD_WHITE);
+    display.fillRect((((display.width() - tbw) / 2) - tbx) + blackRectOffset, yRect, rectWidth, rectHeight, GxEPD_BLACK);
 
     display.setFont(&font);
 
@@ -493,6 +495,7 @@ void settingModeNextDigit(T value, int whiteRectOffset, int blackRectOffset, int
   while(display.nextPage());
 }
 
+// helper function for setting-mode
 std :: string monthSwitch(int monthNumber) {
   switch(monthNumber-1) {
     case 0:
@@ -537,6 +540,7 @@ std :: string monthSwitch(int monthNumber) {
   }
 }
 
+// handling the changing of time and date though buttons and display
 void settingModeHandler() {
   const char* currentClockTime;
   char currentClockTimeArr[5];
@@ -546,8 +550,7 @@ void settingModeHandler() {
 
   switch (settingMode)
   {
-  case START_TIME:
-
+  case TIME_SETUP:
     display.clearScreen();
 
     currentClockTime = clockManager.convertTimeToString().c_str();
@@ -600,7 +603,7 @@ void settingModeHandler() {
     }
 
     if (btnBrightness.hasPressed()) {
-      settingModeNextDigit(hour1Counter, -5, 40, 80, 40, -4, 70, FreeSansBold42pt7b); // ÄNDERT
+      settingModeNextDigit(hour1Counter, -5, 40, 80, 40, -4, 70, FreeSansBold42pt7b);
       settingMode = HOUR_1;
     }
 
@@ -637,8 +640,6 @@ void settingModeHandler() {
     break;
 
   case MINUTE_0:
-    Serial.printf("MINUTE_0\n");
-
     if (btnHigher.hasPressed()) {
       minute0Counter < 5 ? minute0Counter++ : minute0Counter = 0;
       settingModePlusMinus(minute0Counter, 120, 75, 45, -65, 70, FreeSansBold42pt7b);
@@ -665,10 +666,7 @@ void settingModeHandler() {
       settingModePlusMinus(minute1Counter, 165, 75, 45, -65, 70, FreeSansBold42pt7b);
     }
 
-    Serial.printf("MINUTE_1\n");
-
     if (btnBrightness.hasPressed()) {
-    
       settingMode = DATE_SETUP;
     }
 
@@ -687,9 +685,7 @@ void settingModeHandler() {
     monthCounter = (currentDateTimeArr[3]-48)*10 + currentDateTimeArr[4]-48;
     yearCounter = (currentDateTimeArr[6]-48)*1000 + (currentDateTimeArr[7]-48)*100 + (currentDateTimeArr[8]-48)*10 + currentDateTimeArr[9]-48;
 
-    Serial.printf("%d / %d / %d", dayCounter, monthCounter, yearCounter);
-
-     display.firstPage();
+    display.firstPage();
 
     // 0 | 0 | : | 0 | 0
     // -5  40  88  120 165
@@ -737,7 +733,6 @@ void settingModeHandler() {
 
     break;
 
-
   case MONTH:
     if (btnHigher.hasPressed()) {
       monthCounter < 12 ? monthCounter++ : monthCounter = 0;
@@ -772,7 +767,6 @@ void settingModeHandler() {
       int yearDigit2 = yearCounter % 10;
       int yearDigit1 = (yearCounter-(yearCounter%10)) / 10;
 
-
       clockManager.setDateTime(yearDigit2*10+yearDigit1, monthCounter, dayCounter, hour0Counter*10 + hour1Counter, minute0Counter*10 + minute1Counter, 0);
 
       displayMode = SETUP;
@@ -782,7 +776,6 @@ void settingModeHandler() {
     break;
 
   case END:
-    
     break;
 
   default:
@@ -790,6 +783,7 @@ void settingModeHandler() {
   }
 }
 
+// handling of all display functionality
 void displayAgent() {
   switch (displayMode)
   {
@@ -828,38 +822,34 @@ void displayAgent() {
     break;
 
   case OPERATION:
-
     if (messageLoopTimeManager.elapsed()) {
-      
-      if (settingMode == END) {
-        if (clockMinute.hasChanged(clockManager.convertTimeToString()[4])) {
-          displayRefreshHandler(&displayPartialRefreshClockTime);
-        }
-        else if (clockHour.hasChanged(clockManager.convertTimeToString()[1])) {
-          systemIsOn ? systemIsOn : !systemIsOn;
-          displayMode = OFF;
-        }
-        else if (mode.hasChanged(operationMode) && !automaticIsOn) {
-          displayRefreshHandler(&displayPartialRefreshBrightnessProcessBar);
-          displayRefreshHandler(&displayPartialRefreshLuminousProcessBar);
-        }
-        else if (brightness.hasChanged(brightnessSlider) && !automaticIsOn) {
-          displayRefreshHandler(&displayPartialRefreshBrightnessProcessBar);
-          pwmAgent();
-        }
-        else if (autoBrightness.hasChanged(automaticBrightness) && automaticIsOn) {
-          displayRefreshHandler(&displayPartialRefreshBrightnessAutomaticProcessBar);
-        }
-        else if (luminous.hasChanged(luminousSlider)) {
-          displayRefreshHandler(&displayPartialRefreshLuminousProcessBar);
-          pwmAgent();
-        }
-        
-        messageLoopTimeManager.setPrevious();
+      if (clockMinute.hasChanged(clockManager.convertTimeToString()[4])) {
+        displayRefreshHandler(&displayPartialRefreshClockTime);
       }
+      else if (clockHour.hasChanged(clockManager.convertTimeToString()[1])) {
+        systemIsOn ? systemIsOn : !systemIsOn;
+        displayMode = OFF;
+      }
+      else if (mode.hasChanged(operationMode) && !automaticIsOn) {
+        displayRefreshHandler(&displayPartialRefreshBrightnessProcessBar);
+        displayRefreshHandler(&displayPartialRefreshLuminousProcessBar);
+      }
+      else if (brightness.hasChanged(brightnessSlider) && !automaticIsOn) {
+        displayRefreshHandler(&displayPartialRefreshBrightnessProcessBar);
+        pwmAgent();
+      }
+      else if (autoBrightness.hasChanged(automaticBrightness) && automaticIsOn) {
+        displayRefreshHandler(&displayPartialRefreshBrightnessAutomaticProcessBar);
+      }
+      else if (luminous.hasChanged(luminousSlider)) {
+        displayRefreshHandler(&displayPartialRefreshLuminousProcessBar);
+        pwmAgent();
+      }
+      
+      messageLoopTimeManager.setPrevious();
     }
 
-     if (displayRefresh.elapsed() && settingMode == END) {
+     if (displayRefresh.elapsed()) {
         do 
         {
           displayStaticElements();
@@ -889,7 +879,6 @@ void displayAgent() {
     break;
 
   case LOWPOWER:
-
     if (digitalRead(pir)) {
       pwmAgent();
       displayMode = OPERATION;
@@ -928,6 +917,7 @@ void displayAgent() {
   }
 }
 
+// CPU0: responsible for the display
 void Task1code(void * parameter) {
   for(;;) {
     if (settingMode == END) {
@@ -939,6 +929,7 @@ void Task1code(void * parameter) {
   }
 }
 
+// CPO1: responsible for all tasks, except display
 void Task2code(void * parameter) {
   for(;;) {
    if (buttonTimeManager.elapsed()) {
@@ -981,40 +972,38 @@ void Task2code(void * parameter) {
   }
 }
 
-
-void setup()
-{
+void setup() {
+  Serial.begin(9600);
+  
   Wire.end();
   Wire.begin();
-  display.init();
-  Serial.begin(9600);
 
-  // TimeManager setup
-  ldrPirTimeManager.setDuration(200);
+  display.init();
+
+  // setup of TimeManagers 
   buttonTimeManager.setDuration(200);
   messageLoopTimeManager.setDuration(200);
-
+  ldrPirTimeManager.setDuration(200);
   displayRefresh.setDuration(30000);
-
   measureDuration.setDuration(5000);
   validationDuration.setDuration(60000);
 
+  // first environmental data to display
   meanTemperature = DHT20.getTemperature();
   meanHumandity = DHT20.getHumidity()*100.0;
   meanPPM = CCS811.getCO2PPM();
 
-  // Button setup
+  // setup of Buttons
   btnPower.begin();
   btnBrightness.begin();
   btnLuminous.begin();
   btnHigher.begin();
   btnLower.begin();
 
-  // PinMode setup
+  // setup of pins
   pinMode(ldr, INPUT);
   pinMode(pwm0, OUTPUT);
   pinMode(pwm1, OUTPUT);
-
   pinMode(pir, INPUT);
 
   analogWrite(pwm0, 0);
@@ -1036,9 +1025,7 @@ void setup()
   }
 
   clockManager.begin();
-  //clockManager.setDateTime(23, 4, 6, 15, 10, 0);
   
-
   xTaskCreatePinnedToCore(
       Task1code, /* Function to implement the task */
       "Task1", /* Name of the task */

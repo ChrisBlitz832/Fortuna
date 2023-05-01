@@ -1,3 +1,10 @@
+/*
+program: Clock.cpp
+usage: handling of clock-time and clock-date with RTC-module
+author: Christoph Blizenetz
+date: 15.03.2023
+*/
+
 #ifndef CLOCK_H
 #define CLOCK_H
 
@@ -8,8 +15,6 @@
 #include <time.h>
 #include <string>
 #include <iostream>
-
-
 
 class Clock {
     int hourDigit[2];
@@ -36,7 +41,6 @@ class Clock {
     
     RTClib myRTC;
     DS3231 myDS;
-
 
 public:
     void begin();

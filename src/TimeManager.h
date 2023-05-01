@@ -1,12 +1,9 @@
 /*
-Programm: TimeManager.h
-Zweck: Handling von Zeit
-Autor: Christoph Blizenetz
-Datum: 26.03.2022 
+program: TimeManager.cpp
+usage: handling of time with millis()
+author: Christoph Blizenetz
+date: 26.03.2022
 */
-
-#ifndef B39B9BAA_910E_47E1_9C16_AC540C822FDB
-#define B39B9BAA_910E_47E1_9C16_AC540C822FDB
 
 #ifndef TIMEMANAGER_H
 #define TIMEMANAGER_H
@@ -33,6 +30,3 @@ public:
 };
 
 #endif
-
-
-#endif /* B39B9BAA_910E_47E1_9C16_AC540C822FDB */

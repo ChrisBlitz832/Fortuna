@@ -1,8 +1,8 @@
 /*
-Programm: Button.cpp
-Zweck: Handling der Buttons inkl. longClick
-Autor: Christoph Blizenetz
-Datum: 06.05.2022 
+program: Button.cpp
+usage: handling of buttons
+author: Christoph Blizenetz
+date: 06.05.2022
 */
 
 #include "Button.h"
